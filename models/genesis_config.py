@@ -24,9 +24,16 @@ import modules.seq_att as seq_att
 import modules.decoders as decoders
 from modules.component_vae import ComponentVAE
 
-from third_party.sylvester.VAE import VAE
+#from third_party.sylvester.VAE import VAE
 
 import utils.misc as misc
+
+from third_party.sylvestorflows.VAE import VAE
+from third_party.sylvestorflows.VAE import PlanarVAE
+from third_party.sylvestorflows.VAE import OrthogonalSylvesterVAE
+from third_party.sylvestorflows.VAE import HouseholderSylvesterVAE
+from third_party.sylvestorflows.VAE import TriangularSylvesterVAE
+from third_party.sylvestorflows.VAE import IAFVAE
 
 
 # Model type
@@ -80,8 +87,27 @@ class Genesis(nn.Module):
         # - Attention core
         att_nin = input_channels
         att_nout = 1
-        att_core = VAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
+        if cfg.flow == 'no_flow':
+            att_core = VAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
                        att_nout, cfg.enc_norm, cfg.dec_norm)
+        if cfg.flow == 'planar_flow':
+            att_core = PlanarVAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
+                       att_nout, cfg.enc_norm, cfg.dec_norm)
+        if cfg.flow == 'OS_flow':
+            att_core = OrthogonalSylvesterVAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
+                       att_nout, cfg.enc_norm, cfg.dec_norm)
+        if cfg.flow == 'HS_flow':
+            att_core = HouseholderSylvesterVAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
+                       att_nout, cfg.enc_norm, cfg.dec_norm)
+        if cfg.flow == 'TS_flow':
+            att_core = TriangularSylvesterVAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
+                       att_nout, cfg.enc_norm, cfg.dec_norm)
+        if cfg.flow == 'IA_flow':
+            att_core = IAFVAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
+                       att_nout, cfg.enc_norm, cfg.dec_norm)
+
+        #att_core = VAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
+                    #att_nout, cfg.enc_norm, cfg.dec_norm)
         # - Attention process
         self.att_steps = self.K_steps
         self.att_process = seq_att.LatentSBP(att_core)
@@ -195,7 +221,7 @@ class Genesis(nn.Module):
                     mlp_out = self.prior_mlp(zm_k_k[step])
                     mlp_out = torch.chunk(mlp_out, 2, dim=1)
                     mu = torch.tanh(mlp_out[0])
-                    sigma = B.to_prior_sigma(mlp_out[1])
+                    sigma = torch.sigmoid(mlp_out[1] + 4.) + 1e-4
                     p_zl = Normal(mu, sigma)
                     comp_stats['pmu_k'].append(mu)
                     comp_stats['psigma_k'].append(sigma)
@@ -258,7 +284,7 @@ class Genesis(nn.Module):
             linear_out = prior_linear(lstm_out)
             linear_out = torch.chunk(linear_out, 2, dim=2)
             mu_raw = torch.tanh(linear_out[0])
-            sigma_raw = B.to_prior_sigma(linear_out[1])
+            sigma_raw = torch.sigmoid(linear_out[1] + 4.) + 1e-4
             # Split into K steps, shape: (att_steps-2)*[1, batch_size, ldim]
             mu_k = torch.split(mu_raw, 1, dim=0)
             sigma_k = torch.split(sigma_raw, 1, dim=0)
@@ -306,7 +332,7 @@ class Genesis(nn.Module):
                     zm_k[-1].view(1, batch_size, -1), state)
                 linear_out = self.prior_linear(lstm_out)
                 mu = linear_out[0, :, :self.ldim]
-                sigma = B.to_prior_sigma(linear_out[0, :, self.ldim:])
+                sigma = B.to_sigma(linear_out[0, :, self.ldim:])
                 p_zm = Normal(mu.view([batch_size, self.ldim]),
                               sigma.view([batch_size, self.ldim]))
                 zm_k.append(p_zm.sample())
@@ -341,7 +367,7 @@ class Genesis(nn.Module):
                 for zm in zm_k:
                     mlp_out = torch.chunk(self.prior_mlp(zm), 2, dim=1)
                     mu = torch.tanh(mlp_out[0])
-                    sigma = B.to_prior_sigma(mlp_out[1])
+                    sigma = torch.sigmoid(mlp_out[1] + 4.) + 1e-4
                     zc_k.append(Normal(mu, sigma).sample())
                 # if not self.softmax_attention:
                 #     zc_k.append(Normal(0, 1).sample(

@@ -21,8 +21,13 @@ from forge import flags
 
 from modules.blocks import Flatten
 from modules.decoders import BroadcastDecoder
-from third_party.sylvester.VAE import VAE
-
+#from third_party.sylvester.VAE import VAE
+from third_party.sylvestorflows.VAE import VAE
+from third_party.sylvestorflows.VAE import PlanarVAE
+from third_party.sylvestorflows.VAE import OrthogonalSylvesterVAE
+from third_party.sylvestorflows.VAE import HouseholderSylvesterVAE
+from third_party.sylvestorflows.VAE import TriangularSylvesterVAE
+from third_party.sylvestorflows.VAE import IAFVAE
 
 # GatedConvVAE
 flags.DEFINE_integer('latent_dimension', 64, 'Latent channels.')
@@ -49,7 +54,19 @@ class BaselineVAE(nn.Module):
         self.debug = cfg.debug
         # Module
         nin = cfg.input_channels if hasattr(cfg, 'input_channels') else 3
-        self.vae = VAE(self.ldim, [nin, cfg.img_size, cfg.img_size], nin)
+        if cfg.flow == 'no_flow':
+            self.vae = VAE(self.ldim, [nin, cfg.img_size, cfg.img_size], nin)
+        if cfg.flow == 'planar_flow':
+            self.vae = PlanarVAE(self.ldim, [nin, cfg.img_size, cfg.img_size], nin)
+        if cfg.flow == 'OS_flow':
+            self.vae = OrthogonalSylvesterVAE(self.ldim, [nin, cfg.img_size, cfg.img_size], nin)
+        if cfg.flow == 'HS_flow':
+            self.vae = HouseholderSylvesterVAE(self.ldim, [nin, cfg.img_size, cfg.img_size], nin)
+        if cfg.flow == 'TS_flow':
+            self.vae = TriangularSylvesterVAE(self.ldim, [nin, cfg.img_size, cfg.img_size], nin)
+        if cfg.flow == 'IA_flow':
+            self.vae = IAFVAE(self.ldim, [nin, cfg.img_size, cfg.img_size], nin)
+
         if cfg.broadcast_decoder:
             self.vae.p_x_nn = nn.Sequential(
                 Flatten(),
