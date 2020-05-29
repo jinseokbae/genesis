@@ -94,7 +94,7 @@ class GQNLoader():
         self.sess = None
         # Create GQN reader
         reader = gqn.GQNTFRecordDataset(
-            dataset='rooms_ring_camera',
+            dataset='cophy_balls',
             context_size=0,
             root=data_folder,
             mode=mode,

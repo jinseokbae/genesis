@@ -68,6 +68,13 @@ _DATASETS = dict(
         frame_size=64,
         sequence_size=10),
 
+    cophy_balls = DatasetInfo(
+        basepath='cophy_balls',
+        train_size = 2160,
+        test_size=240,
+        frame_size=64,
+        sequence=10)
+
     # super-small subset of rooms_ring for debugging purposes
     # TODO(ogroth): provide dataset
     rooms_ring_camera_debug=DatasetInfo(

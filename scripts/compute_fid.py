@@ -28,6 +28,8 @@ from forge.experiment_tools import fprint
 
 from third_party.pytorch_fid import fid_score as FID
 
+import pdb
+
 
 def main_flags():
     # Data & model config
@@ -87,7 +89,9 @@ def main():
     model_state_dict = checkpoint['model_state_dict']
     model_state_dict.pop('comp_vae.decoder_module.seq.0.pixel_coords.g_1', None)
     model_state_dict.pop('comp_vae.decoder_module.seq.0.pixel_coords.g_2', None)
-    model.load_state_dict(model_state_dict)
+    key1 = 'comp_vae.decoder_module.seq.0.pixel_coords.g_1'
+    key2 = 'comp_vae.decoder_module.seq.0.pixel_coords.g_2'
+    model.load_state_dict(model_state_dict, strict=False)
     fprint(model)
     # Put model on GPU
     if config.gpu:
