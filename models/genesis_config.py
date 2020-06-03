@@ -87,6 +87,8 @@ class Genesis(nn.Module):
         # - Attention core
         att_nin = input_channels
         att_nout = 1
+        att_core = VAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
+                    att_nout, cfg.enc_norm, cfg.dec_norm)
         if cfg.flow == 'no_flow':
             att_core = VAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
                        att_nout, cfg.enc_norm, cfg.dec_norm)
@@ -106,8 +108,7 @@ class Genesis(nn.Module):
             att_core = IAFVAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
                        att_nout, cfg.enc_norm, cfg.dec_norm)
 
-        #att_core = VAE(self.ldim, [att_nin, cfg.img_size, cfg.img_size],
-                    #att_nout, cfg.enc_norm, cfg.dec_norm)
+
         # - Attention process
         self.att_steps = self.K_steps
         self.att_process = seq_att.LatentSBP(att_core)
