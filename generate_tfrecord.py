@@ -32,8 +32,6 @@ def reduce_func(key, dataset):
     writer.write(dataset.map(lambda _, x: x))
     return tf.data.Dataset.from_tensors(filename)
 
-ball_count = np.zeros((5))
-
 for shard in range(num_shards):
     batch_images = np.zeros((625,64,64,3))
 
@@ -46,11 +44,14 @@ for shard in range(num_shards):
         currentframe = ball_count[ball_num-2] % 30
 
         path = '/home/jsbae/ClonedRepo/cophy/images/cophy_balls/{ballN}/{epiN}/{ballN}_{epiN}_{curN}.jpg'.format(ballN = int(ball_num), epiN = int(episode), curN = int(currentframe))
-        print(path)
         batch_images[i] = cv2.imread(path)
         batch_images[i] /= 255.
+        assert batch_images[i].sum()>1
         total_count += 1
         ball_count[ball_num-2] += 1
+        if (total_count %200==0):
+            print('total_num : ', total_count)
+            print(batch_images[i].sum())
 
     # pdb.set_trace()
     dataset = tf.data.Dataset.from_tensor_slices(batch_images)

@@ -65,8 +65,8 @@ def main_flags():
     flags.DEFINE_integer('batch_size', 32, 'Mini-batch size.')
     flags.DEFINE_string('optimiser', 'adam', 'Optimiser for updating weights.')
     flags.DEFINE_float('learning_rate', 0.0001, 'Learning rate.')
-    flags.DEFINE_integer('N_eval', 10000
-                         ,
+    flags.DEFINE_integer('N_eval', #10000
+                         1250,
                          'Number of samples to run evaluation on.')
     # Loss config
     flags.DEFINE_float('beta', 0.5, 'KL weighting.')
@@ -182,6 +182,7 @@ def main():
     while iter_idx <= config.train_iter:
         for train_batch in train_loader:
             # Parse data
+
             train_input = train_batch['input']
             if config.gpu:
                 train_input = train_input.cuda()
@@ -406,8 +407,7 @@ def geco_beta_update(beta, error_ema, goal, step_size,
 def visualise_inference(model, vis_batch, writer, mode, iter_idx):
     # Only visualise for eight images
     # Forward pass
-    # pdb.set_trace()
-    vis_input = 255*vis_batch['input'][:8]
+    vis_input = vis_batch['input'][:8]
     if next(model.parameters()).is_cuda:
         vis_input = vis_input.cuda()
     output, losses, stats, att_stats, comp_stats = model(vis_input)
