@@ -405,7 +405,7 @@ def geco_beta_update(beta, error_ema, goal, step_size,
 def visualise_inference(model, vis_batch, writer, mode, iter_idx):
     # Only visualise for eight images
     # Forward pass
-    vis_input = vis_batch['input'][:8]
+    vis_input = 255*vis_batch['input'][:8]
     if next(model.parameters()).is_cuda:
         vis_input = vis_input.cuda()
     output, losses, stats, att_stats, comp_stats = model(vis_input)

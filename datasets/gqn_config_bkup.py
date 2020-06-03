@@ -1,3 +1,4 @@
+# =========================== A2I Copyright Header ===========================
 #
 # Copyright (c) 2003-2019 University of Oxford. All rights reserved.
 # Authors: Applied AI Lab, Oxford Robotics Institute, University of Oxford
@@ -9,38 +10,53 @@
 # (research or commercial). No warranty, explicit or implicit, provided.
 #
 # =========================== A2I Copyright Header ===========================
+
 import os
 import time
+
+import torch
+import torch.nn.functional as F
+
 import tensorflow as tf
+
 import numpy as np
+
 import third_party.tf_gqn.gqn_tfr_provider as gqn
+
 from forge import flags
 from forge.experiment_tools import fprint
-import torch
+
 from utils.misc import loader_throughput
-import pdb
+
+
 flags.DEFINE_string('data_folder', 'data/gqn_datasets',
                     'Path to data folder.')
 flags.DEFINE_integer('img_size', 64,
                      'Dimension of images. Images are square.')
 flags.DEFINE_integer('val_frac', 60,
                      'Fraction of training images to use for validation.')
+
 flags.DEFINE_integer('num_workers', 4, 'TF records dataset.')
-flags.DEFINE_integer('buffer_size', 64, 'TF records dataset.')
+flags.DEFINE_integer('buffer_size', 128, 'TF records dataset.')
+
 flags.DEFINE_integer('K_steps', 7, 'Number of recurrent steps.')
+
+
 SEED = 0
+
+
 def load(cfg, **unused_kwargs):
     # Fix TensorFlow seed
     global SEED
     SEED = cfg.seed
-    tf.random.set_seed(SEED)
-        # Using GPU(S)?
-    ########################
+    tf.set_random_seed(SEED)
+
     if cfg.num_workers == 0:
         fprint("Need to use at least one worker for loading tfrecords.")
         cfg.num_workers = 1
+
     del unused_kwargs
-    if not os.path.exists(os.path.abspath(cfg.data_folder)):
+    if not os.path.exists(cfg.data_folder):
         raise Exception("Data folder does not exist.")
     print(f"Using {cfg.num_workers} data workers.")
     # Create data iterators
@@ -57,16 +73,20 @@ def load(cfg, **unused_kwargs):
         val_frac=cfg.val_frac, batch_size=1,
         num_workers=1, buffer_size=cfg.buffer_size)
     # Create session to be used by loaders
-    # No session is required in TF2
-    # sess = tf.InteractiveSession()
-    # train_loader.sess = sess
-    # val_loader.sess = sess
-    # test_loader.sess = sess
+    sess = tf.InteractiveSession()
+    train_loader.sess = sess
+    val_loader.sess = sess
+    test_loader.sess = sess
+
     # Throughput stats
     loader_throughput(train_loader)
+
     return (train_loader, val_loader, test_loader)
+
+
 class GQNLoader():
     """GQN dataset."""
+
     def __init__(self, data_folder, mode, img_size, val_frac, batch_size,
                  num_workers, buffer_size):
         self.img_size = img_size
@@ -92,11 +112,13 @@ class GQNLoader():
         dataset = dataset.batch(self.batch_size)
         self.dataset = dataset.prefetch(buffer_size * self.batch_size)
         # Create iterator
-        self.it = iter(self.dataset)
+        it = self.dataset.make_one_shot_iterator()
+        self.frames, _ = it.get_next()
         # TODO(martin): avoid hard coding these
         # for "rooms-ring-camera"
         # train_sz = 10800000
         # test_sz = 1200000
+        # for "cophy_balls"
         train_sz = 1350000
         test_sz = 150000
         if mode == 'train':
@@ -110,26 +132,25 @@ class GQNLoader():
         else:
             raise ValueError("Mode not known.")
         self.length = num_frames // batch_size
+
     def __len__(self):
         return self.length
+
     def __iter__(self):
         return self
+
     def __next__(self):
         try:
-            img = next(self.it) #! (img, cam) ;X interested in cameara
-            img = img/255.
-            img = tf.math.maximum(img,1e-05)
-            # # img = img[:, 0, :, :, :]
-
+            img = self.sess.run(self.frames)
+            img = img[:, 0, :, :, :]
             img = np.moveaxis(img, 3, 1)
             img = torch.FloatTensor(img)
             if self.img_size != 64:
-                # img = tf.image.resize(img, size=self.img_size)
                 img = F.interpolate(img, size=self.img_size)
             return {'input': img}
         except tf.errors.OutOfRangeError:
             print("Reached end of epoch. Creating new iterator.")
             # Create new iterator for next epoch
-            self.it = (self.dataset)
+            it = self.dataset.make_one_shot_iterator()
             self.frames, _ = it.get_next()
             raise StopIteration
