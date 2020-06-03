@@ -117,7 +117,6 @@ class GQNLoader():
     def __next__(self):
         try:
             img = next(self.it) #! (img, cam) ;X interested in cameara
-            img = img/255.
             img = tf.math.maximum(img,1e-05)
             # # img = img[:, 0, :, :, :]
 

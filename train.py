@@ -31,6 +31,7 @@ from forge import flags
 import forge.experiment_tools as fet
 from forge.experiment_tools import fprint
 
+import pdb
 
 # ELBO divergence threshold for stopping training
 ELBO_DIV = 1e8
@@ -405,6 +406,7 @@ def geco_beta_update(beta, error_ema, goal, step_size,
 def visualise_inference(model, vis_batch, writer, mode, iter_idx):
     # Only visualise for eight images
     # Forward pass
+    # pdb.set_trace()
     vis_input = 255*vis_batch['input'][:8]
     if next(model.parameters()).is_cuda:
         vis_input = vis_input.cuda()
