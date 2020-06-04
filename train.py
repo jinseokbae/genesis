@@ -65,8 +65,7 @@ def main_flags():
     flags.DEFINE_integer('batch_size', 32, 'Mini-batch size.')
     flags.DEFINE_string('optimiser', 'adam', 'Optimiser for updating weights.')
     flags.DEFINE_float('learning_rate', 0.0001, 'Learning rate.')
-    flags.DEFINE_integer('N_eval', #10000
-                         1250,
+    flags.DEFINE_integer('N_eval', 10000,
                          'Number of samples to run evaluation on.')
     # Loss config
     flags.DEFINE_float('beta', 0.5, 'KL weighting.')
@@ -133,6 +132,7 @@ def main():
 
     # Load data
     train_loader, val_loader, test_loader = fet.load(config.data_config, config)
+    # print("len or train {} val {} test {}".format(train_loader.__len__(),val_loader.__len__(),test_loader.__len__()))
 
     # Load model
     model = fet.load(config.model_config, config)
@@ -335,10 +335,10 @@ def main():
                 visualise_inference(model, train_batch, writer, 'train',
                                     iter_idx)
                 # Validation
-                fprint("Running validation...")
-                eval_model = model.module if config.multi_gpu else model
-                evaluation(eval_model, val_loader, writer, config, iter_idx,
-                           N_eval=config.N_eval)
+                # fprint("Running validation...")
+                # eval_model = model.module if config.multi_gpu else model
+                # evaluation(eval_model, val_loader, writer, config, iter_idx,
+                #            N_eval=config.N_eval)
 
             # Increment counter
             iter_idx += 1
